@@ -1,66 +1,28 @@
 #!/usr/bin/env bash
 
-# check dependencies (awscli 1.11.34 or above,  etc)
-#
+APPEND_COMMA="0"
+CONTENTS_TEMP_FILE=`date +%s`
+FILEMAP_TEMP_FILE="$(($CONTENTS_TEMP_FILE + 1))"
 
-# Initiate Multipart Upload - 1MB pieces
-# aws --profile personal glacier initiate-multipart-upload --account-id 250036610033 --part-size 1048576 --vault-name PicsTest --archive-description "CouchbaseTraining.tar.gz"
-# {
-#     "uploadId": "UnV9Dr0m1vR1Lg64urYnvw6cmCF0X8MmO5O4MRYB7S7Ine9y90Y70NbHrAa5UclsM__4TOSdKbhZoyKr1bSSKmInGNNd",
-#     "location": "/250036610033/vaults/PicsTest/multipart-uploads/UnV9Dr0m1vR1Lg64urYnvw6cmCF0X8MmO5O4MRYB7S7Ine9y90Y70NbHrAa5UclsM__4TOSdKbhZoyKr1bSSKmInGNNd"
-# }
-#
-# Split the file into 1MB pieces
-# split -b 1024k ../CouchbaseTraining.tar.gz
-#
-# Upload One 1MB piece
-# aws --profile personal glacier upload-multipart-part --body xaa --range 'bytes 0-1048575/*' --account-id 250036610033 --vault-name PicsTest --upload-id UnV9Dr0m1vR1Lg64urYnvw6cmCF0X8MmO5O4MRYB7S7Ine9y90Y70NbHrAa5UclsM__4TOSdKbhZoyKr1bSSKmInGNNd
-# {
-#     "checksum": "1df0ff115d81b1263d75cbb31f1ecf60f5da4fffc843528f8667c14f2c84c814"
-# }
-#
-# Calculate Checksum in order to check if it matches
-# sha256sum xaa
-# 1df0ff115d81b1263d75cbb31f1ecf60f5da4fffc843528f8667c14f2c84c814  xaa
-#
-# Show progress bar - change cat for function that uploads part
-# pv x* | cat > gggg
-#
-# Abort
-# aws --profile personal glacier abort-multipart-upload --account-id 250036610033 --vault-name PicsTest --upload-id UnV9Dr0m1vR1Lg64urYnvw6cmCF0X8MmO5O4MRYB7S7Ine9y90Y70NbHrAa5UclsM__4TOSdKbhZoyKr1bSSKmInGNNd
+SCRIPT_PATH="`dirname \"$BASH_SOURCE\"`"
+SCRIPT_PATH="`( cd \"$SCRIPT_PATH\" && pwd )`"
+if [ -z "$SCRIPT_PATH" ] ; then
+  echo "Couldn't figure out the location of cloud-backup.sh"
+  exit 1  # fail
+fi
 
+echo -n '[' > $CONTENTS_TEMP_FILE
+for i in $( find $PWD -type f -exec $SCRIPT_PATH/mapper.sh {} \; ); do
 
-appendComma="0"
-
-echo -n '[' > tmp
-for i in $( find $PWD -type f -exec ./mapper.sh {} \; ); do
-
-    if [ "$appendComma" -eq "1" ]
+    if [ "$APPEND_COMMA" -eq "1" ]
     then
-        echo -n , >> tmp
+        echo -n , >> $CONTENTS_TEMP_FILE
     fi
 
-    echo -n {$i} >> tmp
-    appendComma="1"
+    echo -n {$i} >> $CONTENTS_TEMP_FILE
+    APPEND_COMMA="1"
 done
-echo -n ']' >> tmp
+echo -n ']' >> $CONTENTS_TEMP_FILE
 
+cat $CONTENTS_TEMP_FILE | jq -c 'def r(a): reduce a[] as $item ({}; . + $item); def x(a): {(a): r(map({(.m):(.n)}))}; group_by(.d) | {"archiveID": "","contents": r(map(x(first.d)))}' >> $FILEMAP_TEMP_FILE
 
-Status of mapping
-
-cat tmp | jsonpp | jq 'group_by(.d)[] '
-
-cat tmp | jsonpp | jq 'group_by(.d)[][]  | {(.d) : {(.m):(.n)}}  '
-
-cat tmp | jsonpp | jq 'group_by(.d)[][] as $groupedByDir | {($groupedByDir.d) : {($groupedByDir.m):($groupedByDir.n)}}  '
-
-cat tmp | jsonpp | jq 'group_by(.d)[] as $groupedByDir | {($groupedByDir[].d) : {($groupedByDir[].m):($groupedByDir[].n)}}  '
-
-cat tmp | jsonpp | jq 'group_by(.d)[] as $groupedByDir | map($groupedByDir[].d) | unique as $uniqueKeys | $uniqueKeys[]   '
-
-
-
-
-THIS IS IT !!!!
-
-cat tmp | jsonpp | jq 'def r(a): reduce a[] as $item ({}; . + $item); def x(a): {(a): r(map({(.m):(.n)}))}; group_by(.d) | r(map(x(first.d)))'
