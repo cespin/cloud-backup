@@ -1,0 +1,13 @@
+{
+  "archiveID": "NkbByEejwEggmBz2fTHgJrg0XBoDfjP4q6iu87-TjhqG6eGoOY9Z8i1_AUyUsuhPAdTqLHy8pTl5nfCFJmDl2yEZONi5L26Omw12vcs01MNGntHEQL8MBfGlqrEXAMPLEArchiveId",
+  "contents": {
+    "a": {
+      "b598cf5a12091f4cc8234b0e41361c39": "a.jpg",
+      "h711cf5a12091f4cc8234b0e41361c99": "b.jpg"
+    },
+    "a/b": {
+      "f598cf5a12091f4cc8234b0e41361c32": "c.jpg",
+      "v711cf5a12091f4cc8234b0e41361c91": "d.jpg"
+    }
+  }
+}
